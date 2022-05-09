@@ -8,6 +8,13 @@ networking:
   # net_stack could be dual_stack, ipv4, ipv6
   net_stack: dual_stack
   enable_ssl: false
+  network_type: geneve
+  IFACE: ""
+  DPDK_TUNNEL_IFACE: "br-phy"
+  vlan:
+    VLAN_INTERFACE_NAME: ""
+    VLAN_NAME: "ovn-vlan"
+    VLAN_ID: "100"
 
 ipv4:
   POD_CIDR: "10.16.0.0/16"
@@ -42,9 +49,14 @@ perform:
   MODULES: "kube_ovn_fastpath.ko"
   RPMS: "openvswitch-kmod"
 
-CNI_CONFIG_PRIORITY: "01"
-CNI_CONF_DIR: "/etc/cni/net.d"
-CNI_BIN_DIR: "/opt/cni/bin"
+debug:
+  ENABLE_MIRROR: false
+
+cni_conf:
+  CNI_CONFIG_PRIORITY: "01"
+  CNI_CONF_DIR: "/etc/cni/net.d"
+  CNI_BIN_DIR: "/opt/cni/bin"
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

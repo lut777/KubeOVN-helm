@@ -47,14 +47,21 @@ spec:
           - bash
           - /kube-ovn/start-cniserver.sh
         args:
-          - --enable-mirror=$ENABLE_MIRROR
+          - --enable-mirror={{- .Values.debug.ENABLE_MIRROR }}
           - --encap-checksum=true
-          - --service-cluster-ip-range=$SVC_CIDR
-          - --iface=${IFACE}
-          - --dpdk-tunnel-iface=${DPDK_TUNNEL_IFACE}
-          - --network-type=$NETWORK_TYPE
-          - --default-interface-name=$VLAN_INTERFACE_NAME
-          - --cni-conf-name=${CNI_CONFIG_PRIORITY}-kube-ovn.conflist
+          - --service-cluster-ip-range=
+          {{- if eq .Values.networking.net_stack "dual_stack" -}}
+          {{ .Values.dual_stack.SVC_CIDR }} 
+          {{- else if eq .Values.networking.net_stack "ipv4" -}}
+          {{ .Values.ipv4.SVC_CIDR }}
+          {{- else if eq .Values.networking.net_stack "ipv6" -}}
+          {{ .Values.ipv6.SVC_CIDR }}
+          {{- end }}
+          - --iface={{- .Values.networking.IFACE }}
+          - --dpdk-tunnel-iface={{- .Values.networking.DPDK_TUNNEL_IFACE }}
+          - --network-type={{- .Values.networking.network_type }}
+          - --default-interface-name={{- .Values.networking.vlan.VLAN_INTERFACE_NAME }}
+          - --cni-conf-name={{- .Values.cni_conf.CNI_CONFIG_PRIORITY -}}-kube-ovn.conflist
           - --logtostderr=false
           - --alsologtostderr=true
           - --log_file=/var/log/kube-ovn/kube-ovn-cni.log
@@ -142,10 +149,10 @@ spec:
             path: /run/ovn
         - name: cni-conf
           hostPath:
-            path: {{ .Values.CNI_CONF_DIR }}
+            path: {{ .Values.cni_conf.CNI_CONF_DIR }}
         - name: cni-bin
           hostPath:
-            path: {{ .Values.CNI_BIN_DIR }}
+            path: {{ .Values.cni_conf.CNI_BIN_DIR }}
         - name: host-ns
           hostPath:
             path: /var/run/netns
