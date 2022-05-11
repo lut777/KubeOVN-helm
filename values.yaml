@@ -11,10 +11,18 @@ networking:
   network_type: geneve
   IFACE: ""
   DPDK_TUNNEL_IFACE: "br-phy"
+  EXCLUDE_IPS: "" 
+  POD_NIC_TYPE: "veth-pair"
   vlan:
     VLAN_INTERFACE_NAME: ""
     VLAN_NAME: "ovn-vlan"
     VLAN_ID: "100"
+
+func:
+  ENABLE_LB: true
+  ENABLE_NP: true
+  ENABLE_EIP_SNAT: true
+  ENABLE_EXTERNAL_VPC: true
 
 ipv4:
   POD_CIDR: "10.16.0.0/16"
@@ -53,6 +61,8 @@ debug:
   ENABLE_MIRROR: false
 
 cni_conf:
+  CHECK_GATEWAY: true
+  LOGICAL_GATEWAY: false
   CNI_CONFIG_PRIORITY: "01"
   CNI_CONF_DIR: "/etc/cni/net.d"
   CNI_BIN_DIR: "/opt/cni/bin"
