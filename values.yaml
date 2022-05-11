@@ -52,7 +52,7 @@ dual_stack:
 image:
   repository: "kubeovn"
   pullPolicy: IfNotPresent
-  version: "v1.10.0" 
+  version: "v1.9.2" 
 
 perform:
   MODULES: "kube_ovn_fastpath.ko"
