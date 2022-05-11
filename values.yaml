@@ -6,7 +6,7 @@ replicaCount: 1
 
 networking:
   # net_stack could be dual_stack, ipv4, ipv6
-  net_stack: dual_stack
+  net_stack: ipv4
   enable_ssl: false
   network_type: geneve
   IFACE: ""
@@ -23,6 +23,7 @@ func:
   ENABLE_NP: true
   ENABLE_EIP_SNAT: true
   ENABLE_EXTERNAL_VPC: true
+  HW_OFFLOAD: false
 
 ipv4:
   POD_CIDR: "10.16.0.0/16"
@@ -61,6 +62,7 @@ debug:
   ENABLE_MIRROR: false
 
 cni_conf:
+  MASTER_NODES: ""
   CHECK_GATEWAY: true
   LOGICAL_GATEWAY: false
   CNI_CONFIG_PRIORITY: "01"

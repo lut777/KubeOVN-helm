@@ -94,7 +94,7 @@ spec:
           - --log_file_max_size=0
           env:
             - name: ENABLE_SSL
-              value: {{ .Values.networking.enable_ssl }}
+              value: "{{ .Values.networking.enable_ssl }}"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -108,9 +108,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: OVN_DB_IPS
-              value: {{ range $index, $node := (lookup "v1" "Node" "" "").items -}} 
-              "{{- $node -}}"
-              {{- end }}
+              value: "{{ .Values.cni_conf.MASTER_NODES }}"
           volumeMounts:
             - mountPath: /etc/localtime
               name: localtime

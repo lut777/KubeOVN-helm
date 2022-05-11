@@ -53,7 +53,7 @@ spec:
             privileged: false
           env:
             - name: ENABLE_SSL
-              value: {{ .Values.networking.enable_ssl }}
+              value: "{{ .Values.networking.enable_ssl }}"
             - name: POD_IP
               valueFrom:
                 fieldRef:

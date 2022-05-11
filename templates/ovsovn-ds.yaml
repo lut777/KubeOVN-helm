@@ -1,70 +1,73 @@
-kind: Deployment
+kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: kube-ovn-monitor
+  name: ovs-ovn
   namespace: kube-system
   annotations:
     kubernetes.io/description: |
-      Metrics for OVN components: northd, nb and sb.
+      This daemon set launches the openvswitch daemon.
 spec:
-  replicas: 1
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
   selector:
     matchLabels:
-      app: kube-ovn-monitor
+      app: ovs
+  updateStrategy:
+    type: OnDelete
   template:
     metadata:
       labels:
-        app: kube-ovn-monitor
+        app: ovs
         component: network
         type: infra
     spec:
       tolerations:
         - effect: NoSchedule
           operator: Exists
+        - effect: NoExecute
+          operator: Exists
         - key: CriticalAddonsOnly
           operator: Exists
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app: kube-ovn-monitor
-              topologyKey: kubernetes.io/hostname
       priorityClassName: system-cluster-critical
       serviceAccountName: ovn
       hostNetwork: true
+      hostPID: true
       containers:
-        - name: kube-ovn-monitor
+        - name: openvswitch
           image: "{{- .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/kube-ovn/start-ovn-monitor.sh"]
+          command: ["/kube-ovn/start-ovs.sh"]
           securityContext:
             runAsUser: 0
-            privileged: false
+            privileged: true
           env:
             - name: ENABLE_SSL
               value: "{{ .Values.networking.enable_ssl }}"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: HW_OFFLOAD
+              value: "{{- .Values.func.HW_OFFLOAD }}"
+            - name: TUNNEL_TYPE
+              value: "{{- .Values.networking.network_type }}"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          resources:
-            requests:
-              cpu: 200m
-              memory: 200Mi
-            limits:
-              cpu: 200m
-              memory: 200Mi
+            - name: OVN_DB_IPS
+              value: "{{ .Values.cni_conf.MASTER_NODES }}"
           volumeMounts:
+            - mountPath: /lib/modules
+              name: host-modules
+              readOnly: true
             - mountPath: /var/run/openvswitch
               name: host-run-ovs
             - mountPath: /var/run/ovn
               name: host-run-ovn
+            - mountPath: /sys
+              name: host-sys
+              readOnly: true
+            - mountPath: /etc/cni/net.d
+              name: cni-conf
             - mountPath: /etc/openvswitch
               name: host-config-openvswitch
             - mountPath: /etc/ovn
@@ -80,29 +83,46 @@ spec:
           readinessProbe:
             exec:
               command:
-              - cat
-              - /var/run/ovn/ovnnb_db.pid
-            periodSeconds: 10
+                - bash
+                - -c
+                - LOG_ROTATE=true /kube-ovn/ovs-healthcheck.sh
+            periodSeconds: 5
             timeoutSeconds: 45
           livenessProbe:
             exec:
               command:
-              - cat
-              - /var/run/ovn/ovnnb_db.pid
-            initialDelaySeconds: 30
-            periodSeconds: 10
+                - bash
+                - /kube-ovn/ovs-healthcheck.sh
+            initialDelaySeconds: 10
+            periodSeconds: 5
             failureThreshold: 5
             timeoutSeconds: 45
+          resources:
+            requests:
+              cpu: 200m
+              memory: 200Mi
+            limits:
+              cpu: 1000m
+              memory: 1000Mi
       nodeSelector:
         kubernetes.io/os: "linux"
-        kube-ovn/role: "master"
+        ovn.kubernetes.io/ovs_dp_type: kernel
       volumes:
+        - name: host-modules
+          hostPath:
+            path: /lib/modules
         - name: host-run-ovs
           hostPath:
             path: /run/openvswitch
         - name: host-run-ovn
           hostPath:
             path: /run/ovn
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: cni-conf
+          hostPath:
+            path: /etc/cni/net.d
         - name: host-config-openvswitch
           hostPath:
             path: /etc/origin/openvswitch
@@ -122,3 +142,4 @@ spec:
           secret:
             optional: true
             secretName: kube-ovn-tls
+
