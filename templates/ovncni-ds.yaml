@@ -39,6 +39,8 @@ spec:
         volumeMounts:
           - mountPath: /opt/cni/bin
             name: cni-bin
+          - mountPath: /usr/local/bin
+            name: local-bin
       containers:
       - name: cni-server
         image: "{{- .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
@@ -149,4 +151,7 @@ spec:
         - name: localtime
           hostPath:
             path: /etc/localtime
+        - name: local-bin
+          hostPath:
+            path: /usr/local/bin
 
