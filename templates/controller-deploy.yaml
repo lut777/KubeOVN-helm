@@ -42,9 +42,8 @@ spec:
         - name: kube-ovn-controller
           image: "{{ .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-          - /kube-ovn/start-controller.sh
           args:
+          - /kube-ovn/start-controller.sh
           - --default-cidr=
           {{- if eq .Values.networking.net_stack "dual_stack" -}}
           {{ .Values.dual_stack.POD_CIDR }}
@@ -63,7 +62,7 @@ spec:
           {{- end }}
           - --default-gateway-check={{- .Values.cni_conf.CHECK_GATEWAY }}
           - --default-logical-gateway={{- .Values.cni_conf.LOGICAL_GATEWAY }}
-          - --default-exclude-ips={{- .Values.cni_conf.EXCLUDE_IPS }}
+          - --default-exclude-ips={{- .Values.networking.EXCLUDE_IPS }}
           - --node-switch-cidr=
           {{- if eq .Values.networking.net_stack "dual_stack" -}}
           {{ .Values.dual_stack.JOIN_CIDR }}
@@ -92,6 +91,7 @@ spec:
           - --alsologtostderr=true
           - --log_file=/var/log/kube-ovn/kube-ovn-controller.log
           - --log_file_max_size=0
+          - --enable-lb-svc={{- .Values.func.ENABLE_LB_SVC }}
           env:
             - name: ENABLE_SSL
               value: "{{ .Values.networking.enable_ssl }}"
@@ -150,4 +150,3 @@ spec:
           secret:
             optional: true
             secretName: kube-ovn-tls
-

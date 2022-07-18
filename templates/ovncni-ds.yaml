@@ -39,6 +39,8 @@ spec:
         volumeMounts:
           - mountPath: /opt/cni/bin
             name: cni-bin
+          - mountPath: /usr/local/bin
+            name: local-bin
       containers:
       - name: cni-server
         image: "{{- .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
@@ -51,7 +53,7 @@ spec:
           - --encap-checksum=true
           - --service-cluster-ip-range=
           {{- if eq .Values.networking.net_stack "dual_stack" -}}
-          {{ .Values.dual_stack.SVC_CIDR }} 
+          {{ .Values.dual_stack.SVC_CIDR }}
           {{- else if eq .Values.networking.net_stack "ipv4" -}}
           {{ .Values.ipv4.SVC_CIDR }}
           {{- else if eq .Values.networking.net_stack "ipv6" -}}
@@ -85,6 +87,9 @@ spec:
           - name: RPMS
             value: {{ .Values.perform.RPMS }}
         volumeMounts:
+          - name: host-modules
+            mountPath: /lib/modules
+            readOnly: true
           - name: shared-dir
             mountPath: /var/lib/kubelet/pods
           - mountPath: /etc/openvswitch
@@ -135,6 +140,9 @@ spec:
       nodeSelector:
         kubernetes.io/os: "linux"
       volumes:
+        - name: host-modules
+          hostPath:
+            path: /lib/modules
         - name: shared-dir
           hostPath:
             path: /var/lib/kubelet/pods
@@ -171,3 +179,6 @@ spec:
         - name: tmp
           hostPath:
             path: /tmp
+        - name: local-bin
+          hostPath:
+            path: /usr/local/bin
