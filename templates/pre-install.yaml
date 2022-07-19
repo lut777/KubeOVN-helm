@@ -52,5 +52,5 @@ spec:
         kube-ovn/role: "master"
       containers:
       - name: pre-install-job
-        image: "{{ .Values.global.registry.address}}/{{ .Values.global.images.kubeovn.repository }}:{{ .Values.global.images.kubeovn.tag }}"
+        image: "{{ .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
         command: ["/bin/sleep","1"]
