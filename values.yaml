@@ -9,7 +9,10 @@ networking:
   # net_stack could be dual_stack, ipv4, ipv6
   net_stack: ipv4
   enable_ssl: false
+  # network type could be geneve or vlan
   network_type: geneve
+  # tunnel type could be geneve, vxlan or stt
+  tunnel_type: geneve
   IFACE: ""
   DPDK_TUNNEL_IFACE: "br-phy"
   EXCLUDE_IPS: ""
@@ -54,7 +57,7 @@ dual_stack:
 image:
   repository: "kubeovn"
   pullPolicy: IfNotPresent
-  version: "v1.11.0"
+  version: "v1.9.7"
 
 perform:
   MODULES: "kube_ovn_fastpath.ko"

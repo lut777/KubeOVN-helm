@@ -61,7 +61,7 @@ spec:
           {{- end }}
           - --iface={{- .Values.networking.IFACE }}
           - --dpdk-tunnel-iface={{- .Values.networking.DPDK_TUNNEL_IFACE }}
-          - --network-type={{- .Values.networking.network_type }}
+          - --network-type={{- .Values.networking.tunnel_type }}
           - --default-interface-name={{- .Values.networking.vlan.VLAN_INTERFACE_NAME }}
           - --cni-conf-name={{- .Values.cni_conf.CNI_CONFIG_PRIORITY -}}-kube-ovn.conflist
           - --logtostderr=false

@@ -48,7 +48,7 @@ spec:
             - name: HW_OFFLOAD
               value: "{{- .Values.func.HW_OFFLOAD }}"
             - name: TUNNEL_TYPE
-              value: "{{- .Values.networking.network_type }}"
+              value: "{{- .Values.networking.tunnel_type }}"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
