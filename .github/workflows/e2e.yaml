@@ -1,0 +1,136 @@
+name: helm e2e
+
+env:
+  GO_VERSION: '1.18'
+  GOSEC_VERSION: '2.12.0'
+  KIND_VERSION: v0.14.0
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+
+  download-kube-ovn:
+    name: Build kube-ovn
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '${{ env.GO_VERSION }}'
+          check-latest: true
+        id: go
+
+      - name: Export Go full version
+        run: |
+          echo "GO_FULL_VER=$(go version | awk '{print $3}')" >> "$GITHUB_ENV"
+
+      - name: Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-${{ env.GO_FULL_VER }}-x86-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.GO_FULL_VER }}-x86-
+
+      - name: Download
+        run: |
+          docker image pull kubeovn/kube-ovn:$( cat VERSION )
+          make tar-kube-ovn
+
+      - name: Upload images to artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: kube-ovn
+          path: kube-ovn.tar
+
+  single-e2e:
+    needs:   download-kube-ovn
+    name: 1-master-e2e
+    runs-on: ubuntu-20.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - uses: azure/setup-helm@v3
+        with:
+          version: 'latest' # default is latest (stable)
+          token: ${{ secrets.GITHUB_TOKEN }} # only needed if version is 'latest'
+        id: install
+
+      - name: Install Kind
+        run: |
+          curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-$(uname)-amd64
+          chmod +x ./kind
+          sudo mv kind /usr/local/bin
+
+      - name: Download tar
+        uses: actions/download-artifact@v3
+        with:
+          name: kube-ovn
+
+      - name: Load Image
+        run: |
+          docker load --input kube-ovn.tar
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '${{ env.GO_VERSION }}'
+          check-latest: true
+        id: go
+
+      - name: Export Go full version
+        run: |
+          echo "GO_FULL_VER=$(go version | awk '{print $3}')" >> "$GITHUB_ENV"
+
+      - name: Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-${{ env.GO_FULL_VER }}-x86-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.GO_FULL_VER }}-x86-
+
+      - name: Init Kind
+        run: |
+          sudo pip3 install j2cli
+          sudo pip3 install "j2cli[yaml]"
+          sudo PATH=~/.local/bin:$PATH make kind-init
+
+#      - name: Setup upterm session
+#       uses: lhotari/action-upterm@v1
+
+      - name: Install Kube-OVN
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          shell: bash
+          command: |
+            sudo cp -r /root/.kube/ /home/runner/.kube/
+            sudo chmod -R 777 /home/runner/.kube/
+            sudo make kind-install
+
+      - name: Run E2E
+        run: |
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          sudo kubectl cluster-info
+          sudo cp -r /root/.kube/ /home/runner/.kube/
+          sudo chmod -R 777 /home/runner/.kube/
+          make e2e
+
+      - name: Cleanup
+        run: |
+          sh -c 'while :; do if [ $(kubectl get --no-headers subnet | wc -l) -eq 2 ]; then break; fi; sleep 5; done'
+          sh dist/images/cleanup.sh

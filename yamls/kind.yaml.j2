@@ -1,0 +1,43 @@
+{% if k8s_version is not defined %}
+  {% set k8s_version = "v1.24.2" -%}
+{% endif %}
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  kubeProxyMode: {{ kube_proxy_mode }}
+  disableDefaultCNI: true
+  ipFamily: {{ ip_family }}
+  apiServerAddress: 127.0.0.1
+{%- if ip_family is equalto "ipv4" %}
+  podSubnet: "10.16.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+{%- elif ip_family is equalto "ipv6" %}
+  podSubnet: "fd00:10:16::/64"
+  serviceSubnet: "fd00:10:96::/112"
+{%- else %}
+  podSubnet: "10.16.0.0/16,fd00:10:16::/64"
+  serviceSubnet: "10.96.0.0/12,fd00:10:96::/112"
+{%- endif %}
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    metadata:
+      name: config
+    etcd:
+      local:
+        dataDir: "/tmp/lib/etcd"
+
+nodes:
+  - role: control-plane
+    image: kindest/node:{{ k8s_version }}
+  {%- if ha is equalto "true" %}
+  - role: control-plane
+    image: kindest/node:{{ k8s_version }}
+  - role: control-plane
+    image: kindest/node:{{ k8s_version }}
+  {%- elif single is equalto "true" %}
+
+  {%- else %}
+  - role: worker
+    image: kindest/node:{{ k8s_version }}
+  {%- endif %}
