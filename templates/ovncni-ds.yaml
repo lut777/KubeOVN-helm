@@ -39,8 +39,6 @@ spec:
         volumeMounts:
           - mountPath: /opt/cni/bin
             name: cni-bin
-          - mountPath: /usr/local/bin
-            name: local-bin
       containers:
       - name: cni-server
         image: "{{- .Values.image.repository -}}/kube-ovn:{{- .Values.image.version }}"
@@ -60,14 +58,11 @@ spec:
           {{ .Values.ipv6.SVC_CIDR }}
           {{- end }}
           - --iface={{- .Values.networking.IFACE }}
-          - --dpdk-tunnel-iface={{- .Values.networking.DPDK_TUNNEL_IFACE }}
-          - --network-type={{- .Values.networking.tunnel_type }}
+          - --network-type={{- .Values.networking.network_type }}
           - --default-interface-name={{- .Values.networking.vlan.VLAN_INTERFACE_NAME }}
-          - --cni-conf-name={{- .Values.cni_conf.CNI_CONFIG_PRIORITY -}}-kube-ovn.conflist
           - --logtostderr=false
           - --alsologtostderr=true
           - --log_file=/var/log/kube-ovn/kube-ovn-cni.log
-          - --log_file_max_size=0
         securityContext:
           runAsUser: 0
           privileged: true
@@ -82,16 +77,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          - name: MODULES
-            value: {{ .Values.perform.MODULES }}
-          - name: RPMS
-            value: {{ .Values.perform.RPMS }}
         volumeMounts:
           - name: host-modules
             mountPath: /lib/modules
             readOnly: true
-          - name: shared-dir
-            mountPath: /var/lib/kubelet/pods
           - mountPath: /etc/openvswitch
             name: systemid
           - mountPath: /etc/cni/net.d
@@ -106,30 +95,30 @@ spec:
             mountPropagation: HostToContainer
           - mountPath: /var/log/kube-ovn
             name: kube-ovn-log
-          - mountPath: /var/log/openvswitch
-            name: host-log-ovs
-          - mountPath: /var/log/ovn
-            name: host-log-ovn
           - mountPath: /etc/localtime
             name: localtime
-          - mountPath: /tmp
-            name: tmp
-        livenessProbe:
-          failureThreshold: 3
-          initialDelaySeconds: 30
-          periodSeconds: 7
-          successThreshold: 1
-          tcpSocket:
-            port: 10665
-          timeoutSeconds: 3
         readinessProbe:
-          failureThreshold: 3
+          exec:
+            command:
+              - nc
+              - -z
+              - -w3
+              - 127.0.0.1
+              - "10665"
+          periodSeconds: 3
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+              - nc
+              - -z
+              - -w3
+              - 127.0.0.1
+              - "10665"
           initialDelaySeconds: 30
           periodSeconds: 7
-          successThreshold: 1
-          tcpSocket:
-            port: 10665
-          timeoutSeconds: 3
+          failureThreshold: 5
+          timeoutSeconds: 5
         resources:
           requests:
             cpu: 100m
@@ -143,9 +132,6 @@ spec:
         - name: host-modules
           hostPath:
             path: /lib/modules
-        - name: shared-dir
-          hostPath:
-            path: /var/lib/kubelet/pods
         - name: systemid
           hostPath:
             path: /etc/origin/openvswitch
@@ -164,21 +150,10 @@ spec:
         - name: host-ns
           hostPath:
             path: /var/run/netns
-        - name: host-log-ovs
-          hostPath:
-            path: /var/log/openvswitch
         - name: kube-ovn-log
           hostPath:
             path: /var/log/kube-ovn
-        - name: host-log-ovn
-          hostPath:
-            path: /var/log/ovn
         - name: localtime
           hostPath:
             path: /etc/localtime
-        - name: tmp
-          hostPath:
-            path: /tmp
-        - name: local-bin
-          hostPath:
-            path: /usr/local/bin
+

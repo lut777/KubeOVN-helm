@@ -19,8 +19,6 @@ rules:
       - subnets
       - subnets/status
       - ips
-      - vips
-      - vips/status
       - vlans
       - vlans/status
       - provider-networks
@@ -28,16 +26,6 @@ rules:
       - security-groups
       - security-groups/status
       - htbqoses
-      - iptables-eips
-      - iptables-fip-rules
-      - iptables-dnat-rules
-      - iptables-snat-rules
-      - iptables-eips/status
-      - iptables-fip-rules/status
-      - iptables-dnat-rules/status
-      - iptables-snat-rules/status
-      - switch-lb-rules
-      - switch-lb-rules/status
     verbs:
       - "*"
   - apiGroups:
@@ -63,7 +51,6 @@ rules:
     resources:
       - networkpolicies
       - services
-      - services/status
       - endpoints
       - statefulsets
       - daemonsets
@@ -85,12 +72,6 @@ rules:
       - create
       - patch
       - update
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    verbs:
-      - "*"
   - apiGroups:
       - "k8s.cni.cncf.io"
     resources:

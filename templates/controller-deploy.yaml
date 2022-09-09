@@ -85,13 +85,11 @@ spec:
           - --pod-nic-type={{- .Values.networking.POD_NIC_TYPE }}
           - --enable-lb={{- .Values.func.ENABLE_LB }}
           - --enable-np={{- .Values.func.ENABLE_NP }}
-          - --enable-eip-snat={{- .Values.func.ENABLE_EIP_SNAT }}
           - --enable-external-vpc={{- .Values.func.ENABLE_EXTERNAL_VPC }}
           - --logtostderr=false
           - --alsologtostderr=true
           - --log_file=/var/log/kube-ovn/kube-ovn-controller.log
-          - --log_file_max_size=0
-          - --enable-lb-svc={{- .Values.func.ENABLE_LB_SVC }}
+          - --keep-vm-ip={{- .Values.func.ENABLE_KEEP_VM_IP }}
           env:
             - name: ENABLE_SSL
               value: "{{ .Values.networking.enable_ssl }}"

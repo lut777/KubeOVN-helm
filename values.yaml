@@ -29,6 +29,7 @@ func:
   ENABLE_EXTERNAL_VPC: true
   HW_OFFLOAD: false
   ENABLE_LB_SVC: false
+  ENABLE_KEEP_VM_IP: true
 
 ipv4:
   POD_CIDR: "10.16.0.0/16"
@@ -57,7 +58,7 @@ dual_stack:
 image:
   repository: "kubeovn"
   pullPolicy: IfNotPresent
-  version: "v1.9.7"
+  version: "v1.9.10"
 
 perform:
   MODULES: "kube_ovn_fastpath.ko"
