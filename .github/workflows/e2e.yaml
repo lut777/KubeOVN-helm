@@ -61,11 +61,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
-      - uses: azure/setup-helm@v3
-        with:
-          version: 'latest' # default is latest (stable)
-          token: ${{ secrets.GITHUB_TOKEN }} # only needed if version is 'latest'
-        id: install
+      - name: Helm tool installer
+        uses: Azure/setup-helm@v3.3
 
       - name: Install Kind
         run: |
