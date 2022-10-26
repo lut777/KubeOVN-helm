@@ -78,6 +78,7 @@ jobs:
       - name: Load Image
         run: |
           docker load --input kube-ovn.tar
+          rm kube-ovn.tar
 
       - uses: actions/setup-go@v3
         with:
