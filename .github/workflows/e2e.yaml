@@ -108,8 +108,8 @@ jobs:
           sudo pip3 install "j2cli[yaml]"
           sudo PATH=~/.local/bin:$PATH make kind-init
 
-#      - name: Setup upterm session
-#       uses: lhotari/action-upterm@v1
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
 
       - name: Install Kube-OVN
         uses: nick-invision/retry@v2
