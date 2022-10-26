@@ -35,7 +35,7 @@ kind-install: kind-load-image kind-untaint-control-plane
 	$(eval SPACE := $(EMPTY))
 	$(eval MASTERS = $(subst SPACE,,,$(strip $$(MASTERNODES))))
 	cd .. && sudo helm install kubeovn ./KubeOVN-helm --set cni_conf.MASTER_NODES=$(MASTERNODES) --set nodes=$(NODESNUMBER)
-	kubectl describe no
+	kubectl -n kube-system get pods -o wide
 
 .PHONY: kind-clean
 kind-clean:
@@ -60,3 +60,37 @@ kind-untaint-control-plane:
 .PHONY: tar-kube-ovn
 tar-kube-ovn:
 	docker save $(REGISTRY)/kube-ovn:$(RELEASE_TAG) -o kube-ovn.tar
+
+.PHONY: e2e
+e2e:
+	$(eval NODE_COUNT = $(shell kind get nodes --name kube-ovn | wc -l))
+	$(eval NETWORK_BRIDGE = $(shell docker inspect -f '{{json .NetworkSettings.Networks.bridge}}' kube-ovn-control-plane))
+	@if docker ps -a --format 'table {{.Names}}' | grep -q '^kube-ovn-e2e$$'; then \
+		docker rm -f kube-ovn-e2e; \
+	fi
+	docker run -d --name kube-ovn-e2e --network kind --cap-add=NET_ADMIN $(REGISTRY)/kube-ovn:$(RELEASE_TAG) sleep infinity
+	@if [ '$(NETWORK_BRIDGE)' = 'null' ]; then \
+		kind get nodes --name kube-ovn | while read node; do \
+		docker network connect bridge $$node; \
+		done; \
+	fi
+
+	@if [ -n "$$VLAN_ID" ]; then \
+		kind get nodes --name kube-ovn | while read node; do \
+			docker cp test/kind-vlan.sh $$node:/kind-vlan.sh; \
+			docker exec $$node sh -c "VLAN_ID=$$VLAN_ID sh /kind-vlan.sh"; \
+		done; \
+	fi
+
+	@echo "{" > test/e2e/network.json
+	@i=0; kind get nodes --name kube-ovn | while read node; do \
+		i=$$((i+1)); \
+		printf '"%s": ' "$$node" >> test/e2e/network.json; \
+		docker inspect -f "{{json .NetworkSettings.Networks.bridge}}" "$$node" >> test/e2e/network.json; \
+		if [ $$i -ne $(NODE_COUNT) ]; then echo "," >> test/e2e/network.json; fi; \
+	done
+	@echo "}" >> test/e2e/network.json
+
+	@if [ ! -n "$$(docker images -q kubeovn/pause:3.2 2>/dev/null)" ]; then docker pull kubeovn/pause:3.2; fi
+	kind load docker-image --name kube-ovn kubeovn/pause:3.2
+	ginkgo -mod=mod -progress --always-emit-ginkgo-writer --slow-spec-threshold=60s test/e2e
